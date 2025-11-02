@@ -1,0 +1,15 @@
+[Unit]
+Description=Vihaa Vastra Sarees CRM (Flask via Gunicorn)
+After=network.target
+
+[Service]
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/sare
+Environment="PATH=/home/ec2-user/sare/.venv/bin"
+EnvironmentFile=/home/ec2-user/sare/.env
+ExecStart=/home/ec2-user/sare/.venv/bin/gunicorn -w 3 -b 127.0.0.1:5000 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
