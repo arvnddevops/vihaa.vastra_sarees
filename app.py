@@ -198,6 +198,47 @@ def delete_customer(cid):
         flash("Customer deleted", "info")
     return redirect(url_for("customers"))
 
+# ---------------- Edit Customer ----------------
+@app.route("/customers/<int:cid>/edit", methods=["GET", "POST"])
+def edit_customer(cid):
+    c = db.session.get(Customer, cid)
+    if not c:
+        flash("Customer not found", "warning")
+        return redirect(url_for("customers"))
+
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        phone = (request.form.get("phone") or "").strip()
+        city = (request.form.get("city") or "").strip()
+        instagram = (request.form.get("instagram") or "").strip() or "None"
+        notes = (request.form.get("notes") or "").strip()
+
+        if not name:
+            flash("Name is required", "danger")
+            return redirect(url_for("edit_customer", cid=cid))
+
+        # Enforce unique phone if provided (ignore self)
+        if phone:
+            exists = db.session.execute(
+                db.select(Customer).where(Customer.phone == phone, Customer.id != cid)
+            ).scalar()
+            if exists:
+                flash("Another customer already has this phone number.", "danger")
+                return redirect(url_for("edit_customer", cid=cid))
+
+        c.name = name
+        c.phone = phone or None
+        c.city = city
+        c.instagram = instagram
+        c.notes = notes
+
+        db.session.commit()
+        flash("Customer updated", "success")
+        return redirect(url_for("customers"))
+
+    return render_template("customer_edit.html", c=c)
+
+
 # ---------------- Orders ----------------
 @app.route("/orders", methods=["GET", "POST"])
 def orders():
@@ -342,6 +383,24 @@ def followup_toggle(fid):
         db.session.commit()
         flash("Follow-up updated", "info")
     return redirect(url_for("followups"))
+# ---------------- Follow-up Status Update ----------------
+@app.route("/followups/<int:fid>/status", methods=["POST"])
+def followup_status(fid):
+    f = db.session.get(FollowUp, fid)
+    if not f:
+        flash("Follow-up not found", "warning")
+        return redirect(url_for("followups"))
+    new_status = request.form.get("status") or "Open"
+    # Allow: Open / In Progress / Completed / Closed / Dropped
+    allowed = {"Open", "In Progress", "Completed", "Closed", "Dropped"}
+    if new_status not in allowed:
+        flash("Invalid status", "danger")
+        return redirect(url_for("followups"))
+    f.status = new_status
+    db.session.commit()
+    flash("Follow-up status updated", "success")
+    return redirect(url_for("followups"))
+
 
 # ---------------- Reports / Export ----------------
 @app.route("/reports")

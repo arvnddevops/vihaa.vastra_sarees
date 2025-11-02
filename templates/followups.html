@@ -13,18 +13,35 @@
   <div class="col-md-1 d-grid"><button class="btn btn-primary">Add</button></div>
 </form>
 <table class="table table-striped">
-  <thead><tr><th>Due</th><th>Customer</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
+  <thead>
+    <tr>
+      <th>Due</th><th>Customer</th><th>Notes</th><th>Status</th><th>Action</th>
+    </tr>
+  </thead>
   <tbody>
   {% for f in items %}
     <tr>
-      <td>{{ f.due_date }}</td><td>{{ f.customer.code }} - {{ f.customer.name }}</td><td>{{ f.notes }}</td><td>{{ f.status }}</td>
+      <td>{{ f.due_date }}</td>
+      <td>{{ f.customer.code }} - {{ f.customer.name }}</td>
+      <td>{{ f.notes }}</td>
+      <td>
+        <form method="post" action="{{ url_for('followup_status', fid=f.id) }}">
+          <select class="form-select form-select-sm d-inline w-auto" name="status" onchange="this.form.submit()">
+            {% set opts = ['Open','In Progress','Completed','Closed','Dropped'] %}
+            {% for s in opts %}
+              <option value="{{ s }}" {{ 'selected' if f.status==s else '' }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </td>
       <td>
         <form method="post" action="{{ url_for('followup_toggle', fid=f.id) }}">
-          <button class="btn btn-sm btn-outline-secondary">Toggle</button>
+          <button class="btn btn-sm btn-outline-secondary">Toggle Open/Done</button>
         </form>
       </td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
+
 {% endblock %}

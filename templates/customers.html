@@ -20,12 +20,13 @@
   <tbody>
   {% for c in items %}
     <tr>
-      <td>{{ c.code }}</td><td>{{ c.name }}</td><td>{{ c.instagram }}</td><td>{{ c.phone }}</td><td>{{ c.city }}</td>
       <td>
-        <form method="post" action="{{ url_for('delete_customer', cid=c.id) }}" onsubmit="return confirm('Delete customer?')">
+        <a class="btn btn-sm btn-outline-primary me-2" href="{{ url_for('edit_customer', cid=c.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('delete_customer', cid=c.id) }}" class="d-inline" onsubmit="return confirm('Delete customer?')">
           <button class="btn btn-sm btn-outline-danger">Delete</button>
         </form>
       </td>
+
     </tr>
   {% endfor %}
   </tbody>

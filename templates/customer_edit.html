@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Edit Customer</h3>
+
+<form class="row g-2 mb-3" method="post">
+  <div class="col-md-3">
+    <label class="form-label">Customer Code</label>
+    <input class="form-control" value="{{ c.code }}" disabled>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Name</label>
+    <input class="form-control" name="name" value="{{ c.name }}" required>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">Instagram</label>
+    <input class="form-control" name="instagram" value="{{ c.instagram }}">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">Phone</label>
+    <input class="form-control" name="phone" value="{{ c.phone or '' }}" placeholder="optional">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">City</label>
+    <input class="form-control" name="city" value="{{ c.city or '' }}">
+  </div>
+  <div class="col-md-12">
+    <label class="form-label">Notes</label>
+    <input class="form-control" name="notes" value="{{ c.notes or '' }}">
+  </div>
+  <div class="col-md-2 d-grid">
+    <button class="btn btn-primary mt-3">Save Changes</button>
+  </div>
+  <div class="col-md-2 d-grid">
+    <a class="btn btn-light mt-3" href="{{ url_for('customers') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
