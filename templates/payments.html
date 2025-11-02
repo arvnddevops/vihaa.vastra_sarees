@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Payments</h3>
+<div class="row g-4 mb-3">
+  <div class="col-md-4">
+    <div class="card"><div class="card-header">Payment Mode (Donut)</div>
+      <div class="card-body">
+        <canvas id="donut"></canvas>
+        <div class="small mt-2">
+          <div>Total Paid: ₹{{ paid_total }}</div>
+          <div>Pending Amount: ₹{{ pending_total }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card"><div class="card-header">Monthly Totals (Paid)</div>
+      <div class="card-body"><canvas id="monthlyPaid"></canvas></div>
+    </div>
+  </div>
+</div>
+<div class="table-responsive">
+<table class="table table-striped">
+  <thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Amt</th><th>Purchase</th><th>Payment</th><th>Mode</th><th>Delivery</th></tr></thead>
+  <tbody>
+    {% for o in items %}
+      <tr>
+        <td>{{ o.date }}</td>
+        <td>{{ o.order_id }}</td>
+        <td>{{ o.customer.code }} - {{ o.customer.name }}</td>
+        <td>{{ o.amount }}</td>
+        <td>{{ o.purchase }}</td>
+        <td class="{{ 'text-danger' if o.payment_status=='Pending' else 'text-success' }}">{{ o.payment_status }}</td>
+        <td>{{ o.payment_mode }}</td>
+        <td>{{ o.delivery_status }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<script>
+  window.__donut = {{ donut|tojson }};
+  window.__monthlyPaid = {{ monthly_chart|tojson }};
+</script>
+{% endblock %}

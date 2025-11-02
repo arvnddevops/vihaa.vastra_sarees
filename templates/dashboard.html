@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Dashboard</h3>
+<div class="row g-3 mb-3">
+  <div class="col-md-2"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Total Customers</div><div class="fs-3 fw-bold">{{ total_customers }}</div></div></div></div>
+  <div class="col-md-2"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Total Orders</div><div class="fs-3 fw-bold">{{ total_orders }}</div></div></div></div>
+  <div class="col-md-2"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Total Sales (₹)</div><div class="fs-3 fw-bold">{{ total_sales }}</div></div></div></div>
+  <div class="col-md-2"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Avg Order (₹)</div><div class="fs-3 fw-bold">{{ avg_order }}</div></div></div></div>
+  <div class="col-md-2"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Pending Payments</div><div class="fs-3 fw-bold">{{ pending_payments }}</div></div></div></div>
+  <div class="col-md-2"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Pending Delivery</div><div class="fs-3 fw-bold">{{ pending_delivery }}</div></div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header">Monthly Sales (₹)</div>
+      <div class="card-body"><canvas id="monthlySales"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header">Saree Types</div>
+      <div class="card-body"><canvas id="typeChart"></canvas></div>
+    </div>
+  </div>
+</div>
+<div class="text-muted small mt-3">DB: {{ db_path }}</div>
+<script>
+  window.__monthlyChart = {{ monthly_chart|tojson }};
+  window.__typeChart = {{ type_chart|tojson }};
+</script>
+{% endblock %}

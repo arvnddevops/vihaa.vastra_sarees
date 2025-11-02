@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Reports</h3>
+<div class="row g-3">
+  <div class="col-md-3"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Customers</div><div class="fs-3 fw-bold">{{ kpis.total_customers }}</div></div></div></div>
+  <div class="col-md-3"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Orders</div><div class="fs-3 fw-bold">{{ kpis.total_orders }}</div></div></div></div>
+  <div class="col-md-3"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Paid Revenue (₹)</div><div class="fs-3 fw-bold">{{ kpis.paid_revenue }}</div></div></div></div>
+  <div class="col-md-3"><div class="card card-kpi"><div class="card-body"><div class="text-muted">Pending Amount (₹)</div><div class="fs-3 fw-bold">{{ kpis.pending_amount }}</div></div></div></div>
+</div>
+<div class="mt-3">
+  <a class="btn btn-outline-primary" href="{{ url_for('export_csv', table='orders') }}">Export Orders CSV</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('export_csv', table='customers') }}">Export Customers CSV</a>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Orders</h3>
+<form class="row g-2 mb-3" method="post">
+  <div class="col-md-2"><input type="date" class="form-control" name="date"></div>
+  <div class="col-md-3">
+    <select class="form-select" name="customer_id" required>
+      <option value="">-- Select Customer --</option>
+      {% for c in customers %}<option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2"><input class="form-control" name="saree_type" placeholder="Saree Type"></div>
+  <div class="col-md-2"><input class="form-control" name="amount" placeholder="Amt" type="number" required></div>
+  <div class="col-md-1">
+    <select class="form-select" name="purchase">
+      <option>Online</option><option>Offline</option>
+    </select>
+  </div>
+  <div class="col-md-1">
+    <select class="form-select" name="payment_status" id="payStatus">
+      <option>Pending</option><option>Paid</option>
+    </select>
+  </div>
+  <div class="col-md-1">
+    <select class="form-select" name="payment_mode" id="payMode">
+      <option>Pending</option><option>UPI</option><option>Cash</option>
+    </select>
+  </div>
+  <div class="col-md-12">
+    <div class="row g-2">
+      <div class="col-md-2">
+        <select class="form-select" name="delivery_status">
+          <option>Pending</option><option>Delivered</option><option>Cancelled</option>
+        </select>
+      </div>
+      <div class="col-md-8"><input class="form-control" name="remarks" placeholder="Remarks"></div>
+      <div class="col-md-2 d-grid"><button class="btn btn-primary">Add Order</button></div>
+    </div>
+  </div>
+</form>
+<form class="row g-2 mb-2">
+  <div class="col-md-2">
+    <select class="form-select" name="pay" onchange="this.form.submit()">
+      <option value="">All Payments</option>
+      <option {{ 'selected' if request.args.get('pay')=='Pending' else '' }}>Pending</option>
+      <option {{ 'selected' if request.args.get('pay')=='Paid' else '' }}>Paid</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <input class="form-control" name="month" type="month" value="{{ request.args.get('month','') }}" onchange="this.form.submit()">
+  </div>
+</form>
+<div class="table-responsive">
+<table class="table table-striped align-middle">
+  <thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Saree</th><th>Amt</th><th>Purchase</th><th>Payment</th><th>Mode</th><th>Delivery</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for o in items %}
+  <tr>
+    <td>{{ o.order_id }}</td>
+    <td>{{ o.date }}</td>
+    <td>{{ o.customer.code }} - {{ o.customer.name }}</td>
+    <td>{{ o.saree_type }}</td>
+    <td>{{ o.amount }}</td>
+    <td>{{ o.purchase }}</td>
+    <td class="{{ 'text-danger' if o.payment_status=='Pending' else 'text-success' }}">{{ o.payment_status }}</td>
+    <td>{{ o.payment_mode }}</td>
+    <td>{{ o.delivery_status }}</td>
+    <td>
+      <form method="post" action="{{ url_for('delete_order', oid=o.id) }}" onsubmit="return confirm('Delete order?')">
+        <button class="btn btn-sm btn-outline-danger">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

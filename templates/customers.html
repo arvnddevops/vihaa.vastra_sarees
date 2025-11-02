@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Customers</h3>
+<form class="row g-2 mb-3" method="post">
+  <div class="col-md-2"><input class="form-control" name="code" placeholder="Customer ID (optional)"></div>
+  <div class="col-md-3"><input class="form-control" name="name" placeholder="Name" required></div>
+  <div class="col-md-2"><input class="form-control" name="instagram" placeholder="Instagram"></div>
+  <div class="col-md-2"><input class="form-control" name="phone" placeholder="Phone"></div>
+  <div class="col-md-2"><input class="form-control" name="city" placeholder="City"></div>
+  <div class="col-md-1 d-grid"><button class="btn btn-primary">Save</button></div>
+  <div class="col-12"><input class="form-control" name="notes" placeholder="Notes"></div>
+</form>
+<div class="d-flex justify-content-between mb-2">
+  <form method="get"><input class="form-control" name="q" placeholder="Search customers..." value="{{ q }}"></form>
+  <a class="btn btn-outline-secondary" href="{{ url_for('export_csv', table='customers') }}">Export CSV</a>
+</div>
+<div class="table-responsive">
+<table class="table table-striped align-middle">
+  <thead><tr><th>ID</th><th>Name</th><th>Insta</th><th>Phone</th><th>City</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for c in items %}
+    <tr>
+      <td>{{ c.code }}</td><td>{{ c.name }}</td><td>{{ c.instagram }}</td><td>{{ c.phone }}</td><td>{{ c.city }}</td>
+      <td>
+        <form method="post" action="{{ url_for('delete_customer', cid=c.id) }}" onsubmit="return confirm('Delete customer?')">
+          <button class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
