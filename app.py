@@ -244,6 +244,43 @@ def delete_order(oid):
         db.session.commit()
         flash("Order deleted", "info")
     return redirect(url_for("orders"))
+# ---------------- Edit Order ----------------
+@app.route("/orders/<int:oid>/edit", methods=["GET","POST"])
+def edit_order(oid):
+    o = db.session.get(Order, oid)
+    if not o:
+        flash("Order not found", "warning")
+        return redirect(url_for("orders"))
+
+    if request.method == "POST":
+        # Update with basic validations
+        try:
+            o.date = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
+        except Exception:
+            pass  # keep old date if parse fails
+
+        o.customer_id = safe_int(request.form.get("customer_id"), o.customer_id)
+        o.saree_type = request.form.get("saree_type") or o.saree_type
+        o.amount = safe_int(request.form.get("amount"), o.amount)
+        o.purchase = request.form.get("purchase") or o.purchase
+        o.payment_status = request.form.get("payment_status") or o.payment_status
+
+        # Couple payment mode with status
+        mode = request.form.get("payment_mode") or o.payment_mode
+        if o.payment_status == "Pending":
+            mode = "Pending"
+        o.payment_mode = mode
+
+        o.delivery_status = request.form.get("delivery_status") or o.delivery_status
+        o.remarks = request.form.get("remarks") or o.remarks
+
+        db.session.commit()
+        flash("Order updated", "success")
+        return redirect(url_for("orders"))
+
+    customers = db.session.execute(db.select(Customer).order_by(Customer.name)).scalars().all()
+    return render_template("order_edit.html", o=o, customers=customers)
+
 
 # ---------------- Payments ----------------
 @app.route("/payments")

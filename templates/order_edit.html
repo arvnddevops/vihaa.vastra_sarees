@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Edit Order</h3>
+<form class="row g-2 mb-3" method="post">
+  <div class="col-md-2"><input type="date" class="form-control" name="date" value="{{ o.date }}" required></div>
+  <div class="col-md-3">
+    <select class="form-select" name="customer_id" required>
+      {% for c in customers %}
+        <option value="{{ c.id }}" {{ 'selected' if c.id==o.customer_id else '' }}>{{ c.code }} - {{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2"><input class="form-control" name="saree_type" value="{{ o.saree_type }}" placeholder="Saree Type"></div>
+  <div class="col-md-2"><input class="form-control" name="amount" value="{{ o.amount }}" type="number" required></div>
+  <div class="col-md-1">
+    <select class="form-select" name="purchase">
+      <option {{ 'selected' if o.purchase=='Online' else '' }}>Online</option>
+      <option {{ 'selected' if o.purchase=='Offline' else '' }}>Offline</option>
+    </select>
+  </div>
+  <div class="col-md-1">
+    <select class="form-select" name="payment_status" id="payStatus">
+      <option {{ 'selected' if o.payment_status=='Pending' else '' }}>Pending</option>
+      <option {{ 'selected' if o.payment_status=='Paid' else '' }}>Paid</option>
+    </select>
+  </div>
+  <div class="col-md-1">
+    <select class="form-select" name="payment_mode" id="payMode">
+      <option {{ 'selected' if o.payment_mode=='Pending' else '' }}>Pending</option>
+      <option {{ 'selected' if o.payment_mode=='UPI' else '' }}>UPI</option>
+      <option {{ 'selected' if o.payment_mode=='Cash' else '' }}>Cash</option>
+    </select>
+  </div>
+  <div class="col-md-12">
+    <div class="row g-2">
+      <div class="col-md-2">
+        <select class="form-select" name="delivery_status">
+          <option {{ 'selected' if o.delivery_status=='Pending' else '' }}>Pending</option>
+          <option {{ 'selected' if o.delivery_status=='Delivered' else '' }}>Delivered</option>
+          <option {{ 'selected' if o.delivery_status=='Cancelled' else '' }}>Cancelled</option>
+        </select>
+      </div>
+      <div class="col-md-8"><input class="form-control" name="remarks" value="{{ o.remarks }}" placeholder="Remarks"></div>
+      <div class="col-md-2 d-grid"><button class="btn btn-primary">Save Changes</button></div>
+    </div>
+  </div>
+</form>
+<a class="btn btn-light" href="{{ url_for('orders') }}">← Back to Orders</a>
+
+<script>
+  // Couple payment status & mode (same logic as add form)
+  const statusSel = document.getElementById('payStatus');
+  const modeSel = document.getElementById('payMode');
+  if (statusSel && modeSel) {
+    function sync() {
+      if (statusSel.value === 'Pending') { modeSel.value = 'Pending'; modeSel.disabled = true; }
+      else { if (modeSel.value==='Pending') modeSel.value='UPI'; modeSel.disabled = false; }
+    }
+    statusSel.addEventListener('change', sync);
+    sync();
+  }
+</script>
+{% endblock %}
