@@ -272,7 +272,8 @@ def orders():
     if month:
         q = q.where(text("strftime('%Y-%m', date)=:m")).params(m=month)
     items = db.session.execute(q).scalars().all()
-    customers = db.session.execute(db.select(Customer).order_by(Customer.name)).scalars().all()
+    customers = db.session.execute(db.select(Customer).order_by(Customer.id.desc())).scalars().all()
+
     return render_template("orders.html", items=items, customers=customers)
 
 @app.route("/orders/<int:oid>/delete", methods=["POST"])

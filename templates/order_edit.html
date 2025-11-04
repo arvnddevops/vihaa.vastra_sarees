@@ -48,16 +48,21 @@
 <a class="btn btn-light" href="{{ url_for('orders') }}">← Back to Orders</a>
 
 <script>
-  // Couple payment status & mode (same logic as add form)
+  // Couple payment status & mode (enable mode only if Paid)
   const statusSel = document.getElementById('payStatus');
   const modeSel = document.getElementById('payMode');
   if (statusSel && modeSel) {
     function sync() {
-      if (statusSel.value === 'Pending') { modeSel.value = 'Pending'; modeSel.disabled = true; }
-      else { if (modeSel.value==='Pending') modeSel.value='UPI'; modeSel.disabled = false; }
+      if (statusSel.value === 'Paid') {
+        modeSel.disabled = false;
+        if (!modeSel.value || modeSel.value === 'Pending') modeSel.value = '';
+      } else {
+        modeSel.value = ''; // blank placeholder
+        modeSel.disabled = true;
+      }
     }
     statusSel.addEventListener('change', sync);
-    sync();
+    sync(); // initialize on load
   }
 </script>
 {% endblock %}

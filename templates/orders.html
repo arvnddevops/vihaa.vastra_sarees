@@ -5,32 +5,47 @@
   <div class="col-md-2"><input type="date" class="form-control" name="date"></div>
   <div class="col-md-3">
     <select class="form-select" name="customer_id" required>
-      <option value="">-- Select Customer --</option>
-      {% for c in customers %}<option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>{% endfor %}
+      <option value="" selected disabled>-- Select Customer --</option>
+
+      {% for c in customers %}<option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option> {% endfor %}
+      
     </select>
   </div>
   <div class="col-md-2"><input class="form-control" name="saree_type" placeholder="Saree Type"></div>
   <div class="col-md-2"><input class="form-control" name="amount" placeholder="Amt" type="number" required></div>
+  <!-- Purchase Type -->
   <div class="col-md-1">
-    <select class="form-select" name="purchase">
-      <option>Online</option><option>Offline</option>
-    </select>
+  <select class="form-select" name="purchase" required>
+    <option value="" selected disabled>-- Select --</option>
+    <option>Online</option>
+    <option>Offline</option>
+  </select>
+  </div>
+  <!-- Payment Status -->
+  <div class="col-md-1">
+  <select class="form-select" name="payment_status" id="payStatus" required>
+    <option value="" selected disabled>-- Select --</option>
+    <option>Pending</option>
+    <option>Paid</option>
+  </select>
   </div>
   <div class="col-md-1">
-    <select class="form-select" name="payment_status" id="payStatus">
-      <option>Pending</option><option>Paid</option>
-    </select>
-  </div>
-  <div class="col-md-1">
-    <select class="form-select" name="payment_mode" id="payMode">
-      <option>Pending</option><option>UPI</option><option>Cash</option>
-    </select>
+  <select class="form-select" name="payment_mode" id="payMode" disabled required>
+    <option value="" selected disabled>-- Select --</option>
+    <option>UPI</option>
+    <option>Cash</option>
+  </select>
   </div>
   <div class="col-md-12">
     <div class="row g-2">
       <div class="col-md-2">
-        <select class="form-select" name="delivery_status">
-          <option>Pending</option><option>Delivered</option><option>Cancelled</option>
+        <select class="form-select" name="delivery_status">  
+          <option value="" selected>-- Select (defaults to Pending) --</option>
+          <option>Pending</option>
+          <option>Shipped</option>
+          <option>Delivered</option>
+          <option>Cancelled</option>
+          <option>Failed</option>
         </select>
       </div>
       <div class="col-md-8"><input class="form-control" name="remarks" placeholder="Remarks"></div>

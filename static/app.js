@@ -100,15 +100,20 @@ document.addEventListener('DOMContentLoaded', () => {
     new Chart(document.getElementById('monthlyPaid'), {type:'bar', data:{labels:__monthlyPaid.labels, datasets:[{label:'Paid (₹)', data:__monthlyPaid.data}]} });
   }
 
-  // Couple payment status & mode
+  // Couple payment status & mode (enable mode only if Paid)
   const statusSel = document.getElementById('payStatus');
   const modeSel = document.getElementById('payMode');
   if (statusSel && modeSel) {
     function sync() {
-      if (statusSel.value === 'Pending') { modeSel.value = 'Pending'; modeSel.disabled = true; }
-      else { if (modeSel.value==='Pending') modeSel.value='UPI'; modeSel.disabled = false; }
+      if (statusSel.value === 'Paid') {
+        modeSel.disabled = false;
+        if (!modeSel.value || modeSel.value === 'Pending') modeSel.value = '';
+      } else {
+        modeSel.value = ''; // blank placeholder
+        modeSel.disabled = true;
+      }
     }
     statusSel.addEventListener('change', sync);
-    sync();
+    sync(); // initialize on load
   }
 });
