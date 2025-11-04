@@ -103,17 +103,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Couple payment status & mode (enable mode only if Paid)
   const statusSel = document.getElementById('payStatus');
   const modeSel = document.getElementById('payMode');
+
   if (statusSel && modeSel) {
     function sync() {
       if (statusSel.value === 'Paid') {
         modeSel.disabled = false;
-        if (!modeSel.value || modeSel.value === 'Pending') modeSel.value = '';
       } else {
-        modeSel.value = ''; // blank placeholder
+        modeSel.value = "";
         modeSel.disabled = true;
       }
     }
     statusSel.addEventListener('change', sync);
-    sync(); // initialize on load
+    sync();
   }
+
 });
