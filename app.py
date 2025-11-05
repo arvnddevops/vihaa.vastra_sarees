@@ -50,6 +50,25 @@ def format_inr(value):
 # make available in Jinja:  {{ amount|inr }}
 app.jinja_env.filters['inr'] = format_inr
 
+# --- Badge helpers for status coloring ---
+def payment_badge(s: str) -> str:
+    m = {"Paid": "text-success fw-semibold",
+         "Pending": "text-danger fw-semibold"}
+    return m.get(s or "", "text-muted")
+
+def delivery_badge(s: str) -> str:
+    m = {"Pending": "text-warning fw-semibold",
+         "Shipped": "text-info fw-semibold",
+         "Delivered": "text-success fw-semibold",
+         "Cancelled": "text-danger fw-semibold",
+         "Failed": "text-danger fw-semibold"}
+    return m.get(s or "", "text-muted")
+
+app.jinja_env.filters["pay_badge"] = payment_badge
+app.jinja_env.filters["delv_badge"] = delivery_badge
+
+
+
 
 # Logging
 logging.basicConfig(
@@ -348,36 +367,71 @@ def edit_order(oid):
 
 
 # ---------------- Payments ----------------
+
+# ---------------- Payments ----------------
+from flask import request  # ensure this import exists at top of file
+
 @app.route("/payments")
 def payments():
-    # Donut of modes including Pending as a mode-like slice
-    mode_rows = db.session.execute(text("""
-        SELECT payment_mode as mode, SUM(amount) as total
+    # Totals
+    paid_total = db.session.scalar(
+        db.select(db.func.sum(Order.amount)).where(Order.payment_status == "Paid")
+    ) or 0
+    pending_total = db.session.scalar(
+        db.select(db.func.sum(Order.amount)).where(Order.payment_status == "Pending")
+    ) or 0
+
+    # Donut: separate UPI, Cash, and Pending
+    mode_rows = db.session.execute(db.text("""
+        SELECT
+            CASE
+                WHEN payment_status = 'Pending' THEN 'Pending'
+                ELSE payment_mode
+            END AS mode,
+            SUM(amount) AS total
         FROM "order"
         WHERE payment_status IN ('Paid','Pending')
         GROUP BY mode
+        ORDER BY total DESC
     """)).mappings().all()
-    donut = {"labels":[r["mode"] or "Pending" for r in mode_rows],
-             "data":[int(r["total"] or 0) for r in mode_rows]}
-    # Monthly paid totals
-    monthly = db.session.execute(text("""
+
+    donut = {
+        "labels": [r["mode"] or "Pending" for r in mode_rows],
+        "data":   [int(r["total"] or 0) for r in mode_rows],
+    }
+
+    # Monthly chart: Paid amounts per month (YYYY-MM)
+    monthly = db.session.execute(db.text("""
         SELECT strftime('%Y-%m', date) AS ym, SUM(amount) AS total
         FROM "order"
-        WHERE payment_status='Paid'
+        WHERE payment_status = 'Paid'
         GROUP BY ym
         ORDER BY ym
     """)).mappings().all()
-    monthly_chart = {"labels":[m["ym"] for m in monthly],
-                     "data":[int(m["total"]) for m in monthly]}
-    paid_total = db.session.scalar(db.select(func.coalesce(func.sum(
-        case((Order.payment_status=="Paid", Order.amount), else_=0)
-    ),0)))
-    pending_total = db.session.scalar(db.select(func.coalesce(func.sum(
-        case((Order.payment_status=="Pending", Order.amount), else_=0)
-    ),0)))
-    items = db.session.execute(db.select(Order).order_by(Order.date.desc(), Order.id.desc())).scalars().all()
-    return render_template("payments.html", donut=donut, monthly_chart=monthly_chart,
-                           paid_total=int(paid_total or 0), pending_total=int(pending_total or 0), items=items)
+
+    monthly_chart = {
+        "labels": [m["ym"] for m in monthly],
+        "data":   [int(m["total"] or 0) for m in monthly],
+    }
+
+    # Optional filter from URL (?status=Paid|Pending)
+    status_filter = request.args.get("status")
+    query = db.select(Order).order_by(Order.date.desc(), Order.id.desc())
+    if status_filter in {"Paid", "Pending"}:
+        query = query.where(Order.payment_status == status_filter)
+
+    items = db.session.execute(query).scalars().all()
+
+    return render_template(
+        "payments.html",
+        paid_total=int(paid_total or 0),
+        pending_total=int(pending_total or 0),
+        donut=donut,
+        monthly_chart=monthly_chart,
+        items=items,
+        selected_status=status_filter or "All",
+    )
+
 
 # ---------------- Follow-ups ----------------
 @app.route("/followups", methods=["GET","POST"])
