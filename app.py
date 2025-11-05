@@ -28,6 +28,29 @@ app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret")
 
+# --- INR formatter for Indian commas (e.g., 12,21,507) ---
+def format_inr(value):
+    try:
+        n = int(value or 0)
+    except (TypeError, ValueError):
+        n = 0
+    s = str(n)
+    if len(s) <= 3:
+        return s
+    last3 = s[-3:]
+    rest = s[:-3]
+    parts = []
+    while len(rest) > 2:
+        parts.insert(0, rest[-2:])
+        rest = rest[:-2]
+    if rest:
+        parts.insert(0, rest)
+    return ",".join(parts + [last3])
+
+# make available in Jinja:  {{ amount|inr }}
+app.jinja_env.filters['inr'] = format_inr
+
+
 # Logging
 logging.basicConfig(
     level=logging.INFO,
