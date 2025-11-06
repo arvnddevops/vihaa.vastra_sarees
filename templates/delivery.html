@@ -108,45 +108,58 @@
 
     <!-- Update modal -->
     <div class="modal fade" id="upd{{ o.id }}" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <form class="modal-content" method="post" action="{{ url_for('delivery_update', oid=o.id) }}">
-          <div class="modal-header">
-            <h5 class="modal-title">Update Delivery — {{ o.order_id }}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body row g-2">
-            <div class="col-12">
-              <label class="form-label">Status</label>
-              <select class="form-select" name="status" required>
+        <div class="modal-header">
+            <h5 class="modal-title">Update Delivery — <span class="text-muted">{{ o.order_id }}</span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+            <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small text-muted">Status</label>
+                <select class="form-select" name="status" id="status-{{ o.id }}" required autofocus>
                 {% for s in ['Pending','Packed','Shipped','Out for Delivery','Delivered','Cancelled','Failed'] %}
-                  <option value="{{ s }}" {{ 'selected' if o.delivery_status==s else '' }}>{{ s }}</option>
+                    <option value="{{ s }}" {{ 'selected' if o.delivery_status==s else '' }}>{{ s }}</option>
                 {% endfor %}
-              </select>
+                </select>
             </div>
+
             <div class="col-md-6">
-              <label class="form-label">Courier</label>
-              <input class="form-control" name="courier" value="{{ o.courier or '' }}" placeholder="e.g. DTDC">
+                <label class="form-label small text-muted">Courier</label>
+                <input class="form-control" name="courier" id="courier-{{ o.id }}"
+                    value="{{ o.courier or '' }}" placeholder="e.g. DTDC, Bluedart">
             </div>
+
             <div class="col-md-6">
-              <label class="form-label">Tracking ID</label>
-              <input class="form-control" name="tracking_id" value="{{ o.tracking_id or '' }}" placeholder="AWB / Ref">
+                <label class="form-label small text-muted">Tracking ID</label>
+                <input class="form-control" name="tracking_id" id="tracking-{{ o.id }}"
+                    value="{{ o.tracking_id or '' }}" placeholder="AWB / Ref">
             </div>
+
             <div class="col-md-6">
-              <label class="form-label">ETA (yyyy-mm-dd)</label>
-              <input type="date" class="form-control" name="delivery_eta" value="{{ o.delivery_eta or '' }}">
+                <label class="form-label small text-muted">ETA (yyyy-mm-dd)</label>
+                <input type="date" class="form-control" name="delivery_eta" id="eta-{{ o.id }}"
+                    value="{{ o.delivery_eta or '' }}">
             </div>
+
             <div class="col-12">
-              <label class="form-label">Note (optional)</label>
-              <input class="form-control" name="note" placeholder="e.g. Address confirmed, fragile item">
+                <label class="form-label small text-muted">Note (optional)</label>
+                <textarea class="form-control" name="note" rows="2"
+                        placeholder="e.g. Address confirmed, fragile item"></textarea>
             </div>
-          </div>
-          <div class="modal-footer">
+            </div>
+        </div>
+
+        <div class="modal-footer">
             <button class="btn btn-primary">Save</button>
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-          </div>
+        </div>
         </form>
-      </div>
     </div>
+    </div>
+
     <!-- Timeline modal -->
     <div class="modal fade" id="tl{{ o.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
