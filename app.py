@@ -122,6 +122,15 @@ class FollowUp(db.Model):
     customer = db.relationship("Customer")
 
 
+# --- Delivery timeline log ---
+class DeliveryLog(db.Model):
+    __tablename__ = "delivery_log"
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("order.id"), index=True, nullable=False)
+    when = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    status = db.Column(db.String(32), nullable=False)  # Pending/Packed/Shipped/Out for Delivery/Delivered/Cancelled/Failed
+    note = db.Column(db.String(200))
+
 # ------------------ Helpers ------------------
 def ensure_columns():
     """SQLite-safe ensure new columns exist without breaking existing DB."""
@@ -443,8 +452,10 @@ def delivery():
     dfrom = request.args.get("from")
     dto = request.args.get("to")
 
+    # Base query: newest first
     query = db.select(Order).order_by(Order.date.desc(), Order.id.desc())
 
+    # Filters
     if status in {"Pending","Packed","Shipped","Out for Delivery","Delivered","Cancelled","Failed"}:
         query = query.where(Order.delivery_status == status)
     if ptype in {"Online","Offline"}:
@@ -453,6 +464,7 @@ def delivery():
         query = query.where(Order.courier == courier)
     if q:
         like = f"%{q}%"
+        # search order_id, tracking_id, or customer name
         query = query.join(Customer).where(
             db.or_(Order.order_id.like(like), Order.tracking_id.like(like), Customer.name.like(like))
         )
@@ -461,10 +473,12 @@ def delivery():
     if dto:
         query = query.where(db.func.date(db.func.coalesce(Order.shipment_date, Order.date)) <= dto)
 
+    # Execute query
     items = db.session.execute(query).scalars().all()
 
-    def count(s): 
-        return db.session.scalar(db.select(db.func.count(Order.id)).where(Order.delivery_status==s)) or 0
+    # KPI counts (by status)
+    def count(s):
+        return db.session.scalar(db.select(db.func.count(Order.id)).where(Order.delivery_status == s)) or 0
     kpis = {
         "Pending": count("Pending"),
         "Packed": count("Packed"),
@@ -474,34 +488,29 @@ def delivery():
         "Cancelled": count("Cancelled"),
         "Failed": count("Failed"),
     }
-    return render_template("delivery.html", items=items, kpis=kpis, status=status, ptype=ptype, q=q, courier=courier, dfrom=dfrom, dto=dto)
 
-@app.route("/delivery/<int:oid>/update", methods=["POST"])
-def delivery_update(oid):
-    o = db.session.get(Order, oid)
-    if not o:
-        flash("Order not found","warning"); return redirect(url_for("delivery"))
-    new_status = request.form.get("status")
-    allowed = {"Pending","Packed","Shipped","Out for Delivery","Delivered","Cancelled","Failed"}
-    if new_status not in allowed:
-        flash("Invalid status","danger"); return redirect(url_for("delivery"))
+    # ---------- ADD THIS BLOCK (logs_map) ----------
+    # Build a map of logs for only the orders shown on this page
+    order_ids = [o.id for o in items]
+    logs_map = {}
+    if order_ids:
+        logs = db.session.execute(
+            db.select(DeliveryLog)
+              .where(DeliveryLog.order_id.in_(order_ids))
+              .order_by(DeliveryLog.when.desc())
+        ).scalars().all()
+        for lg in logs:
+            logs_map.setdefault(lg.order_id, []).append(lg)
+    # ---------- END ADD BLOCK ----------
 
-    o.delivery_status = new_status
-    o.courier = request.form.get("courier") or o.courier
-    o.tracking_id = request.form.get("tracking_id") or o.tracking_id
-    o.delivery_eta = request.form.get("delivery_eta") or o.delivery_eta
-    if new_status == "Shipped" and not o.shipment_date:
-        o.shipment_date = datetime.today().date()
-    if new_status == "Delivered":
-        o.delivered_date = datetime.today().date()
-    o.last_update = datetime.utcnow()
+    return render_template(
+        "delivery.html",
+        items=items,
+        kpis=kpis,
+        status=status, ptype=ptype, q=q, courier=courier, dfrom=dfrom, dto=dto,
+        logs_map=logs_map  # <-- pass it to the template
+    )
 
-    if 'DeliveryLog' in globals():
-        db.session.add(DeliveryLog(order_id=o.id, status=new_status, note=request.form.get("note","")))
-
-    db.session.commit()
-    flash("Delivery updated","success")
-    return redirect(url_for("delivery", status=new_status))
 
 
 # ---------------- Follow-ups ----------------

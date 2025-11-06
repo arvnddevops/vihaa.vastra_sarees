@@ -102,6 +102,7 @@
       <td class="text-nowrap">{{ o.last_update or '-' }}</td>
       <td>
         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#upd{{ o.id }}">Update</button>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#tl{{ o.id }}">Timeline</button>
       </td>
     </tr>
 
@@ -146,6 +147,39 @@
         </form>
       </div>
     </div>
+    <!-- Timeline modal -->
+    <div class="modal fade" id="tl{{ o.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Delivery Timeline — {{ o.order_id }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            {% set logs = logs_map.get(o.id, []) %}
+            {% if logs %}
+            <ul class="list-group">
+                {% for lg in logs %}
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                    <div class="fw-semibold">{{ lg.status }}</div>
+                    <small class="text-muted">{{ lg.note or '' }}</small>
+                    </div>
+                    <span class="badge bg-light text-muted rounded-pill">{{ lg.when }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="text-muted">No timeline entries yet. Update delivery status to start logging.</div>
+            {% endif %}
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" data-bs-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
   {% endfor %}
   </tbody>
 </table>
