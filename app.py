@@ -634,6 +634,24 @@ def seed_demo():
         f = FollowUp(due_date=date.today(), customer_id=customers[i].id, notes="Call customer", status="Open")
         db.session.add(f)
     db.session.commit()
+# ---------------- Main ----------------
+def ensure_columns():
+    """Ensure delivery-related columns exist on 'order' table (SQLite-safe)."""
+    from sqlalchemy import text
+    cols = {r["name"] for r in db.session.execute(text('PRAGMA table_info("order")')).mappings()}
+    to_add = []
+    def want(name, typ): 
+        if name not in cols: to_add.append((name, typ))
+    want("courier", "TEXT")
+    want("tracking_id", "TEXT")
+    want("shipment_date", "DATE")
+    want("delivery_eta", "DATE")
+    want("delivered_date", "DATE")
+    want("last_update", "DATETIME")
+    for name, typ in to_add:
+        db.session.execute(text(f'ALTER TABLE "order" ADD COLUMN {name} {typ}'))
+    if to_add:
+        db.session.commit()
 
 if __name__ == "__main__":
     with app.app_context():
