@@ -121,6 +121,7 @@ class FollowUp(db.Model):
     status = db.Column(db.String(20), default="Open")  # Open/Done
     customer = db.relationship("Customer")
 
+
 # ------------------ Helpers ------------------
 def ensure_columns():
     """SQLite-safe ensure new columns exist without breaking existing DB."""
@@ -368,7 +369,7 @@ def edit_order(oid):
 
 # ---------------- Payments ----------------
 
-# ---------------- Payments ----------------
+
 from flask import request  # ensure this import exists at top of file
 
 @app.route("/payments")
@@ -431,6 +432,76 @@ def payments():
         items=items,
         selected_status=status_filter or "All",
     )
+
+# ---------------- Delivery ----------------
+@app.route("/delivery")
+def delivery():
+    q = request.args.get("q","").strip()
+    status = request.args.get("status")
+    ptype = request.args.get("ptype")
+    courier = request.args.get("courier")
+    dfrom = request.args.get("from")
+    dto = request.args.get("to")
+
+    query = db.select(Order).order_by(Order.date.desc(), Order.id.desc())
+
+    if status in {"Pending","Packed","Shipped","Out for Delivery","Delivered","Cancelled","Failed"}:
+        query = query.where(Order.delivery_status == status)
+    if ptype in {"Online","Offline"}:
+        query = query.where(Order.purchase == ptype)
+    if courier:
+        query = query.where(Order.courier == courier)
+    if q:
+        like = f"%{q}%"
+        query = query.join(Customer).where(
+            db.or_(Order.order_id.like(like), Order.tracking_id.like(like), Customer.name.like(like))
+        )
+    if dfrom:
+        query = query.where(db.func.date(db.func.coalesce(Order.shipment_date, Order.date)) >= dfrom)
+    if dto:
+        query = query.where(db.func.date(db.func.coalesce(Order.shipment_date, Order.date)) <= dto)
+
+    items = db.session.execute(query).scalars().all()
+
+    def count(s): 
+        return db.session.scalar(db.select(db.func.count(Order.id)).where(Order.delivery_status==s)) or 0
+    kpis = {
+        "Pending": count("Pending"),
+        "Packed": count("Packed"),
+        "Shipped": count("Shipped"),
+        "OFD": count("Out for Delivery"),
+        "Delivered": count("Delivered"),
+        "Cancelled": count("Cancelled"),
+        "Failed": count("Failed"),
+    }
+    return render_template("delivery.html", items=items, kpis=kpis, status=status, ptype=ptype, q=q, courier=courier, dfrom=dfrom, dto=dto)
+
+@app.route("/delivery/<int:oid>/update", methods=["POST"])
+def delivery_update(oid):
+    o = db.session.get(Order, oid)
+    if not o:
+        flash("Order not found","warning"); return redirect(url_for("delivery"))
+    new_status = request.form.get("status")
+    allowed = {"Pending","Packed","Shipped","Out for Delivery","Delivered","Cancelled","Failed"}
+    if new_status not in allowed:
+        flash("Invalid status","danger"); return redirect(url_for("delivery"))
+
+    o.delivery_status = new_status
+    o.courier = request.form.get("courier") or o.courier
+    o.tracking_id = request.form.get("tracking_id") or o.tracking_id
+    o.delivery_eta = request.form.get("delivery_eta") or o.delivery_eta
+    if new_status == "Shipped" and not o.shipment_date:
+        o.shipment_date = datetime.today().date()
+    if new_status == "Delivered":
+        o.delivered_date = datetime.today().date()
+    o.last_update = datetime.utcnow()
+
+    if 'DeliveryLog' in globals():
+        db.session.add(DeliveryLog(order_id=o.id, status=new_status, note=request.form.get("note","")))
+
+    db.session.commit()
+    flash("Delivery updated","success")
+    return redirect(url_for("delivery", status=new_status))
 
 
 # ---------------- Follow-ups ----------------
