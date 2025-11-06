@@ -513,23 +513,35 @@ def delivery():
     )
 @app.route("/delivery/<int:oid>/update", methods=["POST"])
 def delivery_update(oid):
+    # 1) Load order (guard)
     o = db.session.get(Order, oid)
     if not o:
         flash("Order not found", "warning")
         return redirect(url_for("delivery"))
 
+    # 2) Validate status (only)
     allowed = {"Pending","Packed","Shipped","Out for Delivery","Delivered","Cancelled","Failed"}
     new_status = request.form.get("status")
     if new_status not in allowed:
         flash("Invalid status", "danger")
         return redirect(url_for("delivery"))
 
-    # update fields from the modal (only overwrite if provided)
+    # 3) Always update status
     o.delivery_status = new_status
-    o.courier       = request.form.get("courier") or o.courier
-    o.tracking_id   = request.form.get("tracking_id") or o.tracking_id
-    o.delivery_eta  = request.form.get("delivery_eta") or o.delivery_eta
 
+    # 4) Update optional fields ONLY if provided (modal submits them)
+    courier  = request.form.get("courier")
+    tracking = request.form.get("tracking_id")
+    eta      = request.form.get("delivery_eta")
+
+    if courier is not None:
+        o.courier = courier or o.courier
+    if tracking is not None:
+        o.tracking_id = tracking or o.tracking_id
+    if eta is not None:
+        o.delivery_eta = eta or o.delivery_eta
+
+    # 5) Auto-dates
     if new_status == "Shipped" and not o.shipment_date:
         o.shipment_date = date.today()
     if new_status == "Delivered":
@@ -537,19 +549,21 @@ def delivery_update(oid):
 
     o.last_update = datetime.utcnow()
 
-    # timeline entry
+    # 6) Timeline entry (best-effort, never crash)
     try:
-        db.session.add(DeliveryLog(
-            order_id=o.id,
-            status=new_status,
-            note=(request.form.get("note") or None)
-        ))
+        note = (request.form.get("note") or None)
+        # DeliveryLog may not exist or table might be empty initially; wrap in try
+        db.session.add(DeliveryLog(order_id=o.id, status=new_status, note=note))
     except Exception:
         pass
 
+    # 7) Save
     db.session.commit()
     flash("Delivery updated", "success")
+
+    # 8) Back to Delivery tab, pre-filtered
     return redirect(url_for("delivery", status=new_status))
+
 
 
 # ---------------- Follow-ups ----------------
