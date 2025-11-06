@@ -95,7 +95,15 @@
       <td class="text-nowrap">{{ o.customer.code }} - {{ o.customer.name }}</td>
       <td>₹ {{ o.amount|inr }}</td>
       <td>{{ o.purchase }}</td>
-      <td class="{{ o.delivery_status|delv_badge }}">{{ o.delivery_status }}</td>
+      <td>
+        <form method="post" action="{{ url_for('delivery_update', oid=o.id) }}" class="d-inline">
+            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for s in ['Pending','Packed','Shipped','Out for Delivery','Delivered','Cancelled','Failed'] %}
+                <option value="{{ s }}" {{ 'selected' if o.delivery_status==s else '' }}>{{ s }}</option>
+            {% endfor %}
+            </select>
+        </form>
+        </td>
       <td>{{ o.courier or '-' }}</td>
       <td class="text-nowrap">{{ o.tracking_id or '-' }}</td>
       <td>{{ o.delivery_eta or '-' }}</td>
