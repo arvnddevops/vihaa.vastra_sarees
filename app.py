@@ -68,6 +68,19 @@ def delivery_badge(s: str) -> str:
 app.jinja_env.filters["pay_badge"] = payment_badge
 app.jinja_env.filters["delv_badge"] = delivery_badge
 
+@app.template_filter('badge_class')
+def badge_class(status):
+    return {
+        "Pending": "sel-warning",
+        "Packed": "sel-info",
+        "Shipped": "sel-primary",
+        "Out for Delivery": "sel-warning",
+        "Delivered": "sel-success",
+        "Cancelled": "sel-muted",
+        "Failed": "sel-danger",
+    }.get(status, "sel-muted")
+
+
 
 
 
