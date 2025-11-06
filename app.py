@@ -652,14 +652,21 @@ def ensure_columns():
         db.session.execute(text(f'ALTER TABLE "order" ADD COLUMN {name} {typ}'))
     if to_add:
         db.session.commit()
-
+# 🔻 ADD THIS BLOCK *OUTSIDE* any function, NOT in __main__
+from sqlalchemy.exc import OperationalError
+with app.app_context():
+    try:
+        db.create_all()          # creates DeliveryLog table, etc.
+        ensure_columns()         # adds courier/tracking/shipment_date/... to "order"
+    except OperationalError as e:
+        logger.exception("DB init failed at import")
 if __name__ == "__main__":
-    with app.app_context():
-        try:
-            db.create_all()
-            ensure_columns()
-            seed_demo()
-        except OperationalError as e:
-            logger.exception("DB init failed")
-            raise
+    # with app.app_context():
+    #     try:
+    #         db.create_all()
+    #         ensure_columns()
+    #         seed_demo()
+    #     except OperationalError as e:
+    #         logger.exception("DB init failed")
+    #         raise
     app.run(host="0.0.0.0", port=5000, debug=False)
