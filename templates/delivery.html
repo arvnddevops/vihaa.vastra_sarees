@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Delivery</h3>
+
+<!-- KPI strip -->
+<div class="row g-3 mb-3">
+  {% set map = {
+    'Pending':'warning', 'Packed':'secondary', 'Shipped':'info',
+    'Out for Delivery':'primary', 'Delivered':'success', 'Cancelled':'danger', 'Failed':'danger'
+  } %}
+  {% for label, count in [
+    ('Pending', kpis.get('Pending',0)),
+    ('Packed', kpis.get('Packed',0)),
+    ('Shipped', kpis.get('Shipped',0)),
+    ('Out for Delivery', kpis.get('OFD',0)),
+    ('Delivered', kpis.get('Delivered',0)),
+    ('Cancelled', kpis.get('Cancelled',0)),
+    ('Failed', kpis.get('Failed',0))
+  ] %}
+  <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">{{ label }}</div>
+        <div class="fs-4 fw-bold text-{{ map[label] }}">{{ count }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filters -->
+<form class="row g-2 align-items-end mb-3" method="get">
+  <div class="col-md-3">
+    <label class="form-label small">Search (Order / Tracking / Customer)</label>
+    <input type="text" class="form-control" name="q" value="{{ q or '' }}" placeholder="e.g. ORD2025..., BLR..., Lakshmi">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small">Status</label>
+    <select class="form-select" name="status" onchange="this.form.submit()">
+      {% set statuses = ['All','Pending','Packed','Shipped','Out for Delivery','Delivered','Cancelled','Failed'] %}
+      {% for s in statuses %}
+        <option value="{{ '' if s=='All' else s }}" {{ 'selected' if status==s else '' }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small">Purchase Type</label>
+    <select class="form-select" name="ptype" onchange="this.form.submit()">
+      {% for s in ['All','Online','Offline'] %}
+        <option value="{{ '' if s=='All' else s }}" {{ 'selected' if ptype==s else '' }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small">Courier</label>
+    <input class="form-control" name="courier" value="{{ courier or '' }}" placeholder="e.g. DTDC, Bluedart">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small">From</label>
+    <input type="date" class="form-control" name="from" value="{{ dfrom or '' }}">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small">To</label>
+    <input type="date" class="form-control" name="to" value="{{ dto or '' }}">
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-primary">Filter</button>
+    <a class="btn btn-light" href="{{ url_for('delivery') }}">Reset</a>
+  </div>
+</form>
+
+<!-- Delivery table -->
+<div class="table-responsive">
+<table class="table table-striped align-middle">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Order</th>
+      <th>Customer</th>
+      <th>Amount</th>
+      <th>Purchase</th>
+      <th>Delivery Status</th>
+      <th>Courier</th>
+      <th>Tracking</th>
+      <th>ETA</th>
+      <th>Last Update</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for o in items %}
+    <tr>
+      <td>{{ o.date }}</td>
+      <td class="text-nowrap">{{ o.order_id }}</td>
+      <td class="text-nowrap">{{ o.customer.code }} - {{ o.customer.name }}</td>
+      <td>₹ {{ o.amount|inr }}</td>
+      <td>{{ o.purchase }}</td>
+      <td class="{{ o.delivery_status|delv_badge }}">{{ o.delivery_status }}</td>
+      <td>{{ o.courier or '-' }}</td>
+      <td class="text-nowrap">{{ o.tracking_id or '-' }}</td>
+      <td>{{ o.delivery_eta or '-' }}</td>
+      <td class="text-nowrap">{{ o.last_update or '-' }}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#upd{{ o.id }}">Update</button>
+      </td>
+    </tr>
+
+    <!-- Update modal -->
+    <div class="modal fade" id="upd{{ o.id }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="post" action="{{ url_for('delivery_update', oid=o.id) }}">
+          <div class="modal-header">
+            <h5 class="modal-title">Update Delivery — {{ o.order_id }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body row g-2">
+            <div class="col-12">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status" required>
+                {% for s in ['Pending','Packed','Shipped','Out for Delivery','Delivered','Cancelled','Failed'] %}
+                  <option value="{{ s }}" {{ 'selected' if o.delivery_status==s else '' }}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Courier</label>
+              <input class="form-control" name="courier" value="{{ o.courier or '' }}" placeholder="e.g. DTDC">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tracking ID</label>
+              <input class="form-control" name="tracking_id" value="{{ o.tracking_id or '' }}" placeholder="AWB / Ref">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">ETA (yyyy-mm-dd)</label>
+              <input type="date" class="form-control" name="delivery_eta" value="{{ o.delivery_eta or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Note (optional)</label>
+              <input class="form-control" name="note" placeholder="e.g. Address confirmed, fragile item">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
