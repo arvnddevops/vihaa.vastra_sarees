@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, date
 from contextlib import contextmanager
 
+
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import CheckConstraint, func, case, text
@@ -510,7 +511,45 @@ def delivery():
         status=status, ptype=ptype, q=q, courier=courier, dfrom=dfrom, dto=dto,
         logs_map=logs_map  # <-- pass it to the template
     )
+@app.route("/delivery/<int:oid>/update", methods=["POST"])
+def delivery_update(oid):
+    o = db.session.get(Order, oid)
+    if not o:
+        flash("Order not found", "warning")
+        return redirect(url_for("delivery"))
 
+    allowed = {"Pending","Packed","Shipped","Out for Delivery","Delivered","Cancelled","Failed"}
+    new_status = request.form.get("status")
+    if new_status not in allowed:
+        flash("Invalid status", "danger")
+        return redirect(url_for("delivery"))
+
+    # update fields from the modal (only overwrite if provided)
+    o.delivery_status = new_status
+    o.courier       = request.form.get("courier") or o.courier
+    o.tracking_id   = request.form.get("tracking_id") or o.tracking_id
+    o.delivery_eta  = request.form.get("delivery_eta") or o.delivery_eta
+
+    if new_status == "Shipped" and not o.shipment_date:
+        o.shipment_date = date.today()
+    if new_status == "Delivered":
+        o.delivered_date = date.today()
+
+    o.last_update = datetime.utcnow()
+
+    # timeline entry
+    try:
+        db.session.add(DeliveryLog(
+            order_id=o.id,
+            status=new_status,
+            note=(request.form.get("note") or None)
+        ))
+    except Exception:
+        pass
+
+    db.session.commit()
+    flash("Delivery updated", "success")
+    return redirect(url_for("delivery", status=new_status))
 
 
 # ---------------- Follow-ups ----------------
