@@ -112,16 +112,25 @@ class Customer(db.Model):
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.String(30), unique=True, index=True, nullable=False)
-    date = db.Column(db.Date, default=date.today, index=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"), nullable=False)
-    saree_type = db.Column(db.String(120), nullable=False)  # e.g., Banarasi, Silk
-    amount = db.Column(db.Integer, nullable=False, default=0)
-    purchase = db.Column(db.String(20), default="Online")  # Online/Offline
-    payment_status = db.Column(db.String(20), default="Pending")  # Paid/Pending
-    payment_mode = db.Column(db.String(20), default="Pending")  # UPI/Cash/Pending
-    delivery_status = db.Column(db.String(20), default="Pending")  # Delivered/Cancelled/Pending
-    remarks = db.Column(db.String(255), default="")
+    order_id = db.Column(db.String(50))
+    date = db.Column(db.Date)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"))
+    saree_type = db.Column(db.String(50))
+    amount = db.Column(db.Float)
+    purchase = db.Column(db.String(50))
+    payment_status = db.Column(db.String(50))
+    payment_mode = db.Column(db.String(50))
+    delivery_status = db.Column(db.String(50))
+    remarks = db.Column(db.Text)
+
+    # --- delivery-related columns ---
+    courier = db.Column(db.String(100))
+    tracking_id = db.Column(db.String(100))
+    shipment_date = db.Column(db.Date)
+    delivery_eta = db.Column(db.Date)
+    delivered_date = db.Column(db.Date)
+    last_update = db.Column(db.DateTime)
+
 
     __table_args__ = (
         CheckConstraint("amount >= 0", name="check_amount_nonnegative"),
