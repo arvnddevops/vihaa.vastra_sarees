@@ -459,12 +459,35 @@ def payments():
 # ---------------- Delivery ----------------
 @app.route("/delivery")
 def delivery():
-    q = request.args.get("q","").strip()
+    q = request.args.get("q", "").strip()
     status = request.args.get("status")
     ptype = request.args.get("ptype")
     courier = request.args.get("courier")
-    dfrom = request.args.get("from")
-    dto = request.args.get("to")
+
+    # --- Safe parsing for date filters (from / to) ---
+    from datetime import datetime
+    _raw_from = request.args.get("from")
+    _raw_to = request.args.get("to")
+
+    def _parse_iso_date(s):
+        if not s:
+            return None
+        try:
+            # Accept only YYYY-MM-DD format (what date input returns)
+            return datetime.strptime(s, "%Y-%m-%d").date()
+        except Exception:
+            return None
+
+    dfrom = _parse_iso_date(_raw_from)
+    dto = _parse_iso_date(_raw_to)
+
+    # Friendly notice if user typed wrong date format (optional)
+    if (_raw_from and not dfrom) or (_raw_to and not dto):
+        try:
+            from flask import flash
+            flash("Date filter ignored — please use YYYY-MM-DD format", "warning")
+        except Exception:
+            pass
 
     # Base query: newest first
     query = db.select(Order).order_by(Order.date.desc(), Order.id.desc())
@@ -478,14 +501,20 @@ def delivery():
         query = query.where(Order.courier == courier)
     if q:
         like = f"%{q}%"
-        # search order_id, tracking_id, or customer name
-        query = query.join(Customer).where(
-            db.or_(Order.order_id.like(like), Order.tracking_id.like(like), Customer.name.like(like))
-        )
+        # safe search (avoid join issues)
+        try:
+            query = query.join(Customer).where(
+                db.or_(Order.order_id.like(like), Order.tracking_id.like(like), Customer.name.like(like))
+            )
+        except Exception:
+            # fallback to search on order fields only
+            query = query.where(db.or_(Order.order_id.like(like), Order.tracking_id.like(like)))
+
+    # Apply date filters only when parsed correctly
     if dfrom:
-        query = query.where(db.func.date(db.func.coalesce(Order.shipment_date, Order.date)) >= dfrom)
+        query = query.where(db.func.date(db.func.coalesce(Order.shipment_date, Order.date)) >= dfrom.isoformat())
     if dto:
-        query = query.where(db.func.date(db.func.coalesce(Order.shipment_date, Order.date)) <= dto)
+        query = query.where(db.func.date(db.func.coalesce(Order.shipment_date, Order.date)) <= dto.isoformat())
 
     # Execute query
     items = db.session.execute(query).scalars().all()
@@ -503,27 +532,30 @@ def delivery():
         "Failed": count("Failed"),
     }
 
-    # ---------- ADD THIS BLOCK (logs_map) ----------
     # Build a map of logs for only the orders shown on this page
     order_ids = [o.id for o in items]
     logs_map = {}
     if order_ids:
-        logs = db.session.execute(
-            db.select(DeliveryLog)
-              .where(DeliveryLog.order_id.in_(order_ids))
-              .order_by(DeliveryLog.when.desc())
-        ).scalars().all()
-        for lg in logs:
-            logs_map.setdefault(lg.order_id, []).append(lg)
-    # ---------- END ADD BLOCK ----------
+        try:
+            logs = db.session.execute(
+                db.select(DeliveryLog)
+                  .where(DeliveryLog.order_id.in_(order_ids))
+                  .order_by(DeliveryLog.when.desc())
+            ).scalars().all()
+            for lg in logs:
+                logs_map.setdefault(lg.order_id, []).append(lg)
+        except Exception:
+            logs_map = {}
 
     return render_template(
         "delivery.html",
         items=items,
         kpis=kpis,
-        status=status, ptype=ptype, q=q, courier=courier, dfrom=dfrom, dto=dto,
-        logs_map=logs_map  # <-- pass it to the template
+        status=status, ptype=ptype, q=q, courier=courier, dfrom=(dfrom.isoformat() if dfrom else None),
+        dto=(dto.isoformat() if dto else None),
+        logs_map=logs_map
     )
+
 @app.route("/delivery/<int:oid>/update", methods=["POST"])
 def delivery_update(oid):
     # 1) Load order (guard)
